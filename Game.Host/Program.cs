@@ -4,7 +4,6 @@ using Orleans;
 using Orleans.Configuration;
 using Orleans.Hosting;
 using System;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace HomeAutomation.Host
@@ -39,15 +38,20 @@ namespace HomeAutomation.Host
         {
             // define the cluster configuration
             var builder = new SiloHostBuilder()
-                .UseLocalhostClustering()
                 .Configure<ClusterOptions>(options =>
                 {
                     options.ClusterId = "dev";
                     options.ServiceId = "game";
                 })
-                .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
+                .UseZooKeeperClustering((ZooKeeperClusteringSiloOptions options) =>
+                {
+                    options.ConnectionString = "zookeeper";
+                })
+                .ConfigureEndpoints(11111, 25000)
                 .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(PlayerGrain).Assembly).WithReferences())
-                .ConfigureLogging(logging => logging.AddConsole());
+                .ConfigureLogging(logging => logging.AddConsole())
+                .AddMemoryGrainStorage("PubSubStore")
+                .AddSimpleMessageStreamProvider("GameStream");
 
             var host = builder.Build();
             await host.StartAsync();

@@ -1,39 +1,31 @@
-﻿using Game.GrainInterfaces;
+﻿using Game.GrainInterfaces.Player;
+using Microsoft.Extensions.Logging;
 using Orleans;
-using System;
 using System.Threading.Tasks;
 
 namespace Game.Grains
 {
     public class PlayerGrain : Grain, IPlayerGrain
     {
-        private IGameGrain currentGame;
+        private readonly ILogger logger;
 
-        // Game the player is currently in. May be null.
-        public Task<IGameGrain> GetCurrentGame()
+        private PlayerInfo info;
+
+        public PlayerGrain(ILogger<PlayerGrain> logger)
         {
-            return Task.FromResult(currentGame);
+            this.logger = logger;
         }
 
-        public Task JoinGame(IGameGrain game)
+        public override Task OnActivateAsync()
         {
-            currentGame = game;
-            Console.WriteLine(
-                "Player {0} joined game {1}",
-                this.GetPrimaryKey(),
-                game.GetPrimaryKey());
-
-            return Task.CompletedTask;
+            info = new PlayerInfo { Key = this.GetPrimaryKeyString(), Name = string.Empty };
+            return base.OnActivateAsync();
         }
 
-        public Task LeaveGame(IGameGrain game)
+        public Task SetName(string name)
         {
-            currentGame = null;
-            Console.WriteLine(
-                "Player {0} left game {1}",
-                this.GetPrimaryKey(),
-                game.GetPrimaryKey());
-
+            info.Name = name;
+            logger.LogInformation($"Player {info.Key} set name to {info.Name}");
             return Task.CompletedTask;
         }
     }

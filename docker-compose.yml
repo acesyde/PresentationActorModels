@@ -1,0 +1,33 @@
+version: '3.4'
+
+services:
+  silo:
+    image: ${DOCKER_REGISTRY}gamehost
+    build:
+      context: .
+      dockerfile: Game.Host/Dockerfile
+    ports:
+      - "11111:1111"
+      - "25000:25000"
+    depends_on:
+      - zookeeper
+  
+  api:
+    image: ${DOCKER_REGISTRY}gameapi
+    build:
+      context: .
+      dockerfile: Game.Api/Dockerfile
+    depends_on:
+      - silo
+      - zookeeper
+
+  zookeeper:
+    image: zookeeper
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: game
+      MYSQL_USER: orleans
+      MYSQL_PASSWORD: eQLcnkkprV7PbX
+      MYSQL_ROOT_PASSWORD: uL2uyNetG7ey5q

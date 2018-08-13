@@ -1,13 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using Orleans;
+using Orleans.Configuration;
+using Orleans.Hosting;
 
 namespace HomeAutomation.Api
 {
@@ -24,10 +25,15 @@ namespace HomeAutomation.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+            
+            services
+                .AddDbContext<Game.Api.Data.GameDbContext>(builder => builder.UseMySQL("server=mysql;database=game;user=orleans;password=eQLcnkkprV7PbX"));
+
+            services.AddSingleton<IClusterClient>(CreateOrleansClient());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, Microsoft.AspNetCore.Hosting.IHostingEnvironment env)
         {
             if (env.IsDevelopment())
             {
@@ -35,6 +41,32 @@ namespace HomeAutomation.Api
             }
 
             app.UseMvc();
+        }
+
+        private IClusterClient CreateOrleansClient()
+        {
+            var clientBuilder = new ClientBuilder()
+                .Configure<ClusterOptions>(options =>
+                {
+                    options.ClusterId = "dev";
+                    options.ServiceId = "game";
+                })
+                .UseZooKeeperClustering((ZooKeeperGatewayListProviderOptions options) =>
+                {
+                    options.ConnectionString = "zookeeper";
+                })
+                .ConfigureLogging(logging => logging.AddConsole());
+
+            var client = clientBuilder.Build();
+
+            client.Connect(async ex =>
+            {
+                Console.WriteLine("Retrying...");
+                await Task.Delay(3000);
+                return true;
+            }).Wait();
+
+            return client;
         }
     }
 }

@@ -1,44 +1,53 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Game.GrainInterfaces.Game;
 using Microsoft.AspNetCore.Mvc;
+using Orleans;
 
 namespace HomeAutomation.Api.Controllers
 {
-    [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Route("api/games")]
     public class GamesController : Controller
     {
+        private readonly IClusterClient clusterClient;
+
+        public GamesController(IClusterClient clusterClient)
+        {
+            this.clusterClient = clusterClient;
+        }
+
         // GET api/values
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IActionResult> Get()
         {
-            return new string[] { "value1", "value2" };
+            var gameManager = clusterClient.GetGrain<IGameManagerGrain>("gameManager");
+            if (gameManager == null)
+                return NotFound();
+
+            return Ok(await gameManager.ListGames());
         }
 
         // GET api/values/5
         [HttpGet("{id}")]
-        public string Get(int id)
+        public async Task<IActionResult> Get(Guid id)
         {
-            return "value";
+            var game = clusterClient.GetGrain<IGameGrain>(id);
+            if (game == null)
+                return NotFound();
+
+            return Ok(await game.ListPlayers());
         }
 
-        // POST api/values
-        [HttpPost]
-        public void Post([FromBody]string value)
+        [HttpGet]
+        public async Task<IActionResult> Post()
         {
-        }
+            var gameManager = clusterClient.GetGrain<IGameManagerGrain>("gameManager");
+            if (gameManager == null)
+                return NotFound();
 
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
-        {
-        }
-
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            return Ok(await gameManager.CreateGame());
         }
     }
 }
