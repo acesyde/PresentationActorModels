@@ -1,53 +1,124 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Game.GrainInterfaces.Game;
 using Microsoft.AspNetCore.Mvc;
-using Orleans;
+using Microsoft.EntityFrameworkCore;
+using Game.Api.Data;
 
-namespace HomeAutomation.Api.Controllers
+namespace Game.Api.Controllers
 {
-    [Produces("application/json")]
-    [Route("api/games")]
-    public class GamesController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class GamesController : ControllerBase
     {
-        private readonly IClusterClient clusterClient;
+        private readonly GameDbContext _context;
 
-        public GamesController(IClusterClient clusterClient)
+        public GamesController(GameDbContext context)
         {
-            this.clusterClient = clusterClient;
+            _context = context;
         }
 
-        // GET api/values
+        // GET: api/Games
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public IEnumerable<Data.Models.Game> GetGames()
         {
-            var gameManager = clusterClient.GetGrain<IGameManagerGrain>("gameManager");
-            if (gameManager == null)
-                return NotFound();
-
-            return Ok(await gameManager.ListGames());
+            return _context.Games;
         }
 
-        // GET api/values/5
+        // GET: api/Games/5
         [HttpGet("{id}")]
-        public async Task<IActionResult> Get(Guid id)
+        public async Task<IActionResult> GetGame([FromRoute] Guid id)
         {
-            var game = clusterClient.GetGrain<IGameGrain>(id);
-            if (game == null)
-                return NotFound();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            return Ok(await game.ListPlayers());
+            var game = await _context.Games.FindAsync(id);
+
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(game);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Post()
+        // PUT: api/Games/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutGame([FromRoute] Guid id, [FromBody] Data.Models.Game game)
         {
-            var gameManager = clusterClient.GetGrain<IGameManagerGrain>("gameManager");
-            if (gameManager == null)
-                return NotFound();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            return Ok(await gameManager.CreateGame());
+            if (id != game.Id)
+            {
+                return BadRequest();
+            }
+
+            _context.Entry(game).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!GameExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // POST: api/Games
+        [HttpPost]
+        public async Task<IActionResult> PostGame([FromBody] Data.Models.Game game)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            _context.Games.Add(game);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetGame", new { id = game.Id }, game);
+        }
+
+        // DELETE: api/Games/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteGame([FromRoute] Guid id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var game = await _context.Games.FindAsync(id);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            _context.Games.Remove(game);
+            await _context.SaveChangesAsync();
+
+            return Ok(game);
+        }
+
+        private bool GameExists(Guid id)
+        {
+            return _context.Games.Any(e => e.Id == id);
         }
     }
 }

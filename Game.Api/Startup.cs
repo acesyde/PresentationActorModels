@@ -27,7 +27,7 @@ namespace HomeAutomation.Api
             services.AddMvc();
             
             services
-                .AddDbContext<Game.Api.Data.GameDbContext>(builder => builder.UseMySQL("server=mysql;database=game;user=orleans;password=eQLcnkkprV7PbX"));
+                .AddDbContext<Game.Api.Data.GameDbContext>(builder => builder.UseMySql("server=mysql;database=game;user=orleans;password=eQLcnkkprV7PbX"));
 
             services.AddSingleton<IClusterClient>(CreateOrleansClient());
         }

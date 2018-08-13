@@ -22,7 +22,7 @@ namespace Game.Api.Data
                 entity.HasKey(m => m.Id);
                 entity.Property(m => m.Name).IsRequired();
                 entity.Property(m => m.State).IsRequired().HasDefaultValue(true);
-                entity.Property(m => m.CreatedAt).HasDefaultValue<DateTime>().HasField("_createdAt");
+                entity.Property(m => m.CreatedAt).ValueGeneratedOnAdd();
             });
         }
     }

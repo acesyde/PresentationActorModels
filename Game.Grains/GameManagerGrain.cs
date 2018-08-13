@@ -28,7 +28,7 @@ namespace Game.Grains
         public Task<Guid> CreateGame()
         {
 
-            games.Add(grainFactory.GetGrain<IGameGrain>())
+            throw new NotImplementedException();
         }
 
         public Task<List<Guid>> ListGames()
